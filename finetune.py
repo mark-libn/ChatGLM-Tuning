@@ -10,8 +10,9 @@ from dataclasses import dataclass, field
 import datasets
 import os
 
-
-tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True)
+tokenizer = AutoTokenizer.from_pretrained(
+    "THUDM/chatglm-6b", trust_remote_code=True)
+# tokenizer = AutoTokenizer.from_pretrained("D:\Hugging_Face_Models\ChatGLM-6B", trust_remote_code=True)
 
 
 @dataclass
@@ -35,7 +36,8 @@ def data_collator(features: list) -> dict:
         ids = feature["input_ids"]
         seq_len = feature["seq_len"]
         labels = (
-            [-100] * (seq_len - 1) + ids[(seq_len - 1) :] + [-100] * (longest - ids_l)
+            [-100] * (seq_len - 1) + ids[(seq_len - 1):] +
+            [-100] * (longest - ids_l)
         )
         ids = ids + [tokenizer.pad_token_id] * (longest - ids_l)
         _ids = torch.LongTensor(ids)
@@ -74,9 +76,16 @@ def main():
     ).parse_args_into_dataclasses()
 
     # init model
+    # model = AutoModel.from_pretrained(
+    # "THUDM/chatglm-6b", load_in_8bit=True, trust_remote_code=True, device_map="auto"
+    # )
+    # model = AutoModel.from_pretrained("D:\Hugging_Face_Models\ChatGLM-6B", load_in_8bit=True, trust_remote_code=True, device_map="auto").half().cuda()
+    # model = AutoModel.from_pretrained("D:\Hugging_Face_Models\ChatGLM-6B", load_in_8bit=True, trust_remote_code=True, device_map="auto").half().cuda()
+    # model = AutoModel.from_pretrained("D:\Hugging_Face_Models\ChatGLM-6B", trust_remote_code=True).half().cuda()
     model = AutoModel.from_pretrained(
-        "THUDM/chatglm-6b", load_in_8bit=True, trust_remote_code=True, device_map="auto"
-    )
+        "THUDM/chatglm-6b", trust_remote_code=True).half().cuda()
+    # model = AutoModel.from_pretrained("THUDM/chatglm-6b", load_in_8bit=True, trust_remote_code=True, device_map="auto")
+
     model.gradient_checkpointing_enable()
     model.enable_input_require_grads()
     model.is_parallelizable = True
@@ -93,6 +102,7 @@ def main():
         r=finetune_args.lora_rank,
         lora_alpha=32,
         lora_dropout=0.1,
+        target_modules=["query_key_value"]
     )
     model = get_peft_model(model, peft_config)
 
